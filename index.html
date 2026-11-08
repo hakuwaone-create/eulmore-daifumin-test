@@ -308,7 +308,7 @@ function spotlightMyTurn(){
 function playEvent(v){if(lastVersion===null){lastVersion=v.version;lastPhase=v.phase;lastTurn=v.turn;lastField=JSON.stringify(v.field||[]);lastRevolt=v.revolution;lastFall=v.fall_id;return;}if(v.version===lastVersion)return;
  const field=JSON.stringify(v.field||[]),p=v.players?.find(x=>x.id===v.fall_id),clear=clearEventData(v),freshClear=clear&&Number(clear.c.version)>Number(lastVersion);
  if(freshClear&&(clear.c.reason==='spade3'||clear.c.reason==='eight')){
-  sound(clear.c.reason);eventBanner(clear.c.reason==='spade3'?'♠3 COUNTER!':'8 CUT!',clear.label+'　'+clear.actor,clear.c.reason);
+  sound(clear.c.reason);eventBanner(clear.c.reason==='spade3'?'♠3 COUNTER!':'8 CUT!',clear.label+'　'+clear.actor+(clear.c.reason==='eight'&&clearCombination(clear.c)?'　【'+clearCombination(clear.c)+'】':''),clear.c.reason);
  }
  else if(v.fall_id&&!lastFall){sound('fall');eventBanner('DUTY FAILED','💀 '+(p?.name||'支配者')+' は楽園から追放された！','fall');}
  else if(v.revolution!==lastRevolt){sound('revolt');eventBanner('LIMIT BREAK','⚡ 革命 '+(v.revolution?'発動！':'解除！'),'revolt');}
@@ -443,7 +443,7 @@ function animatePlayedCards(cardIds){
  }catch(e){console.warn('Card animation skipped',e);}
 }
 
-$('playBtn').onclick=()=>lock($('playBtn'),async()=>{const played=[...selected];await rpc('game_action',{p_room:roomId,p_cards:played,p_pass:false});animatePlayedCards(played);selected.clear();sound('play');await refreshBattle()});
+$('playBtn').onclick=()=>lock($('playBtn'),async()=>{const played=[...selected];await rpc('test_game_action',{p_room:roomId,p_cards:played,p_pass:false});animatePlayedCards(played);selected.clear();sound('play');await refreshBattle()});
 $('passBtn').onclick=()=>lock($('passBtn'),async()=>{await rpc('game_action',{p_room:roomId,p_cards:[],p_pass:true});selected.clear();sound('pass');await refreshBattle()});
 
 let pulseBusy=false,lastPulse=0;
