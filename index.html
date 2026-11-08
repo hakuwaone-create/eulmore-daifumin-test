@@ -165,7 +165,37 @@ function cardHtml(c,clickable=false){
  return `<button type="button" aria-label="${name}" class="card custom-card ${c===52?'joker-card':''} ${selected.has(c)?'selected':''}" ${clickable?'data-card="'+c+'"':'disabled'}><img src="${cardImagePath(c)}" alt="" draggable="false" loading="eager"></button>`;
 }
 let ac=null;
-function sound(kind){if(!$('soundEnabled').checked)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();const now=ac.currentTime,vol=(+$('soundVolume').value/100)*.12;const notes={select:[660,.055],play:[420,.12],pass:[240,.085],turn:[880,.16],eight:[170,.32],spade3:[880,.48],revolt:[110,.55],finish:[740,.42],fall:[100,.6],exchange:[510,.2]};const [freq,dur]=notes[kind]||notes.select;const osc=ac.createOscillator(),gain=ac.createGain();osc.type=kind==='revolt'||kind==='fall'?'sawtooth':'sine';osc.frequency.setValueAtTime(freq,now);if(['play','eight','revolt','fall'].includes(kind))osc.frequency.exponentialRampToValueAtTime(Math.max(50,freq*.45),now+dur);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(Math.max(.0001,vol),now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+dur);osc.connect(gain).connect(ac.destination);osc.start(now);osc.stop(now+dur+.01)}catch(e){console.warn(e)}}
+// Layered Web Audio cues: generated locally, no audio downloads and no gameplay waits.
+function sound(kind){
+ if(!$('soundEnabled').checked)return;
+ try{
+  ac=ac||new(window.AudioContext||window.webkitAudioContext)();
+  if(ac.state==='suspended'){ac.resume().catch(()=>{});if(ac.state!=='running')return;}
+  const now=ac.currentTime,vol=(Number($('soundVolume').value)/100)*.10;
+  const tone=(hz,at,dur,type='sine',level=1,endHz=hz)=>{
+   const osc=ac.createOscillator(),gain=ac.createGain();
+   osc.type=type;osc.frequency.setValueAtTime(Math.max(30,hz),at);
+   if(endHz!==hz)osc.frequency.exponentialRampToValueAtTime(Math.max(30,endHz),at+dur);
+   gain.gain.setValueAtTime(.0001,at);
+   gain.gain.exponentialRampToValueAtTime(Math.max(.0001,vol*level),at+.012);
+   gain.gain.exponentialRampToValueAtTime(.0001,at+dur);
+   osc.connect(gain);gain.connect(ac.destination);osc.start(at);osc.stop(at+dur+.02);
+  };
+  switch(kind){
+   case 'select':tone(780,now,.065,'sine',.45,620);break;
+   case 'play':tone(430,now,.12,'triangle',.8,260);tone(650,now+.045,.09,'sine',.4,390);break;
+   case 'pass':tone(280,now,.17,'triangle',.5,170);break;
+   case 'turn':tone(660,now,.12,'sine',.45);tone(990,now+.1,.19,'sine',.55);break;
+   case 'eight':tone(850,now,.13,'sawtooth',.55,190);tone(180,now+.09,.32,'triangle',.85,65);tone(1200,now+.12,.17,'sine',.35,400);break;
+   case 'spade3':tone(440,now,.13,'triangle',.5,880);tone(880,now+.12,.18,'sine',.65,1320);tone(1760,now+.26,.32,'sine',.55,1100);break;
+   case 'revolt':tone(110,now,.68,'sawtooth',.45,65);[220,277.18,329.63,440].forEach((f,i)=>tone(f,now+i*.14,.45,'triangle',.45));tone(880,now+.55,.55,'sine',.5);break;
+   case 'finish':[523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,now+i*.13,.38,'triangle',.55));break;
+   case 'fall':tone(230,now,.45,'sawtooth',.55,65);tone(100,now+.3,.48,'triangle',.7,45);break;
+   case 'exchange':tone(510,now,.13,'sine',.45);tone(680,now+.11,.2,'sine',.4);break;
+   default:tone(660,now,.07,'sine',.4);
+  }
+ }catch(e){console.warn('Audio cue unavailable',e);}
+}
 $('effectMode').value=store.getItem('eulmore_effect')||'full';$('effectMode').onchange=()=>store.setItem('eulmore_effect',$('effectMode').value);$('soundEnabled').checked=store.getItem('eulmore_sound')!=='off';$('soundVolume').value=store.getItem('eulmore_volume')||35;
 $('soundEnabled').onchange=()=>store.setItem('eulmore_sound',$('soundEnabled').checked?'on':'off');$('soundVolume').oninput=()=>store.setItem('eulmore_volume',$('soundVolume').value);
 let eventTimeout=null;function eventBanner(title,detail='',kind='normal'){
