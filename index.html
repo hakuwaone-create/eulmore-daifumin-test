@@ -145,6 +145,13 @@
 #exchange .rank-ceremony .rank-tile{padding:11px 6px}
 @keyframes rankShimmer{to{transform:translateX(100%)}}
 @media(prefers-reduced-motion:reduce){.rank-ceremony .rank-tile:before{animation:none}}
+
+/* Face-down exchange animation; independent of the server transaction */
+.exchange-flight-card{position:fixed;z-index:9998;pointer-events:none;width:58px;height:86px;border:2px solid #e8c982;border-radius:8px;background:#261832;box-shadow:0 7px 24px #0009,0 0 20px #d6ae6555;overflow:hidden;transform-origin:center}
+.exchange-flight-card img{width:100%;height:100%;object-fit:cover;display:block}
+#exchange .exchange-pulse{animation:exchangePulse .65s ease-out}
+@keyframes exchangePulse{0%{box-shadow:0 0 0 #f2ce7000}35%{box-shadow:0 0 28px #f2ce7077}100%{box-shadow:0 0 0 #f2ce7000}}
+@media(prefers-reduced-motion:reduce){#exchange .exchange-pulse{animation:none}}
 </style></head><body><div id="titleScreen" role="dialog" aria-modal="true" aria-label="漆黒の大貧民 タイトル画面"><div class="titleInner"><div class="titleEmblem" aria-hidden="true">♠　♛　♠</div><div class="titleKicker">EULMORE CLASS WAR · ONLINE</div><div class="titleName">漆黒の大貧民</div><div class="titleSubtitle">～ユールモア階級戦～</div><div class="titleDivider"></div><button id="titleStart" type="button">GAME START　›</button><div class="titleFoot">THE BATTLE FOR YOUR RANK BEGINS</div></div></div><main><h1>漆黒の大貧民</h1><div class="sub">EULMORE CLASS WAR · ONLINE Ver.1.1.2 · EASY JOIN</div><div id="toast"></div><div id="connectionState" role="status" aria-live="polite">⚪ 未接続</div><div id="opening" class="hide" role="dialog" aria-modal="true" aria-label="漆黒の大貧民 オープニング"><div class="opening-card c1">♠</div><div class="opening-card c2">♥</div><div class="opening-card c3">♣</div><div class="opening-card c4">♦</div><button id="openingSkip" type="button">SKIP ›</button><div class="opening-content"><div class="opening-kicker">EULMORE CLASS WAR</div><div class="opening-title">漆黒の大貧民</div><div class="opening-sub">～ユールモア階級戦～</div><div class="opening-rule"></div><div class="opening-message">階級戦、開幕。</div></div></div><div id="grandFinal" class="hide" role="dialog" aria-modal="true" aria-label="階級戦 最終結果"><div class="grandInner"><div class="grandKicker">EULMORE CLASS WAR · FINAL RESULT</div><div class="grandTitle">階級戦、終結。</div><div class="grandWinner"><div class="grandCrown">👑</div><div class="grandWinnerLabel">CHAMPION · ユールモアの支配者</div><div class="grandWinnerName" id="grandWinnerName"></div><div id="grandWinnerScore"></div></div><div id="grandRows"></div><div class="grandActions"><button type="button" id="grandClose">結果画面へ ›</button><button type="button" id="grandReplay" class="secondary">↻ 演出をもう一度</button></div><div class="grandHint">結果画面からホストが再戦を開始できます</div></div></div><div id="eventOverlay" aria-live="polite"><div class="eventBox"><div id="eventTitle"></div><div id="eventDetail"></div></div></div>
 <section class="panel" id="config"><h2>⚙️ 接続設定（接続できない場合のみ）</h2><p class="hint">通常は自動接続します。接続に失敗した場合だけ、設定を確認してください。</p><label>Supabase Project URL</label><input id="url" placeholder="https://xxxxx.supabase.co"><label>Publishable / anon key</label><input id="key" type="password" placeholder="sb_publishable_..."><div class="row" style="margin-top:14px"><button id="connect">接続する</button><button class="secondary" id="resetConfig">接続設定を消す</button></div><p class="hint">service_role / secret key は絶対に入力しないでね。</p></section>
 <section id="resumePanel" class="panel hide"><h2>🔌 前回の部屋に復帰</h2><p id="resumeInfo" class="hint">同じブラウザのログイン情報で復帰します。</p><button id="resumeBtn">前回の部屋に戻る</button><button id="dismissResume" class="secondary">新しく参加する</button></section><section id="entry" class="hide"><div class="panel"><h2>⚔️ 冒険者登録</h2><label>キャラクター名</label><input id="name" maxlength="24" placeholder="冒険者の名前"><label>キャラクターアイコン（任意）</label><div class="portrait profile-editor"><div class="profile-preview"><div id="preview" class="avatar">✦</div><span>PROFILE</span></div><div class="profile-controls"><input type="file" id="avatarInput" accept="image/*" aria-label="キャラクター画像を選択"><label for="avatarZoom">画像の拡大率 <output id="avatarZoomValue">100%</output></label><input type="range" id="avatarZoom" min="100" max="250" step="5" value="100" disabled><button type="button" id="avatarReset" class="secondary">画像を削除</button></div></div><p class="hint">画像を選ぶと中央を正方形に切り抜くよ。拡大率を調整してから部屋に参加してね。設定はこのブラウザに保存されるよ。<br>※入室後に画像を変えた場合は、次回入室時から反映されます。</p></div><div class="panel" id="joinPanel"><h2>🔗 コンテンツ参加</h2><label>招待コード</label><input id="joinCode" placeholder="招待URLから自動入力"><button id="join" style="margin-top:12px;width:100%">コンテンツに参加</button></div><div class="panel"><h2>👑 コンテンツ募集</h2><label>対戦形式</label><select id="mode"><option value="endless">連戦型</option><option value="fixed">規定ラウンド型</option></select><div id="roundWrap" class="hide"><label>規定ラウンド</label><select id="rounds"><option value="3">3ラウンド</option><option value="5">5ラウンド</option><option value="10">10ラウンド</option></select></div><label>ターン制限</label><select id="turn"><option value="0">無制限</option><option value="30">30秒</option><option value="60">60秒</option></select><div class="check"><label><input type="checkbox" id="eight" checked>8切り</label></div><div class="check"><label><input type="checkbox" id="spade3" checked>♠3返し</label></div><div class="check"><label><input type="checkbox" id="stairs">階段</label></div><div class="check"><label><input type="checkbox" id="bind">縛り</label></div><div class="check"><label><input type="checkbox" id="fall">都落ち</label></div><p class="hint">革命は常時ON。ジョーカー1枚、ジョーカー上がり禁止。</p><button id="create" style="width:100%">部屋を作成する</button></div></section>
@@ -346,7 +353,29 @@ $('playBtn').disabled=!myturn||selected.size===0;
 $('passBtn').disabled=!myturn||(v.field||[]).length===0;
 }
 $('exchangeHand').onclick=e=>{const b=e.target.closest('[data-card]');if(!b)return;const c=+b.dataset.card;if(selected.has(c))selected.delete(c);else selected.add(c);document.querySelectorAll('#exchangeHand [data-card]').forEach(x=>x.classList.toggle('selected',selected.has(+x.dataset.card)));$('exchangeBtn').disabled=selected.size!==(battle.exchange_pending?.[user.id]||0);sound('select')};
-$('exchangeBtn').onclick=()=>lock($('exchangeBtn'),async()=>{await rpc('exchange_return',{p_room:roomId,p_cards:[...selected]});selected.clear();await refreshBattle()});
+function animateExchangeBacks(count){
+ try{
+  if($('effectMode').value==='off'||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const source=$('exchangeHand'),destination=$('exchangeCeremony');
+  if(!source||!destination)return;
+  const a=source.getBoundingClientRect(),b=destination.getBoundingClientRect();
+  const back=CARD_ASSET_ROOT+'back.png';
+  const total=Math.min(Math.max(1,Number(count)||1),2);
+  for(let i=0;i<total;i++){
+   const card=document.createElement('div');card.className='exchange-flight-card';
+   const img=document.createElement('img');img.src=back;img.alt='';card.appendChild(img);
+   const x=a.left+a.width/2-29+(i-(total-1)/2)*18,y=a.top+Math.min(38,a.height/2)-43;
+   Object.assign(card.style,{left:x+'px',top:y+'px'});
+   document.body.appendChild(card);
+   const dx=b.left+b.width/2-29-x+(i-(total-1)/2)*30,dy=b.top+b.height/2-43-y;
+   const remove=()=>card.remove();setTimeout(remove,1800);
+   if(window.gsap)gsap.to(card,{x:dx,y:dy,rotation:i?15:-15,scale:.8,opacity:0,duration:.7,delay:i*.12,ease:'power2.inOut',onComplete:remove});
+   else card.animate([{transform:'translate(0,0)',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(.8)`,opacity:0}],{duration:700+i*120,easing:'ease-in-out'}).onfinish=remove;
+  }
+  destination.classList.remove('exchange-pulse');void destination.offsetWidth;destination.classList.add('exchange-pulse');
+ }catch(e){console.warn('Exchange animation skipped',e)}
+}
+$('exchangeBtn').onclick=()=>lock($('exchangeBtn'),async()=>{const returned=[...selected];await rpc('exchange_return',{p_room:roomId,p_cards:returned});animateExchangeBacks(returned.length);selected.clear();await refreshBattle()});
 $('rematchBtn').onclick=()=>lock($('rematchBtn'),async()=>{closeGrandFinal();grandShownKey=null;await rpc('rematch',{p_room:roomId});selected.clear();lastVersion=null;lastPhase=null;lastFall=null;await refresh()});
 $('nextBtn').onclick=()=>lock($('nextBtn'),async()=>{await rpc('next_round',{p_room:roomId});selected.clear();await refreshBattle()});
 $('battleHand').onclick=e=>{const b=e.target.closest('[data-card]');if(!b)return;const c=+b.dataset.card;if(selected.has(c))selected.delete(c);else selected.add(c);refreshHandSelection();sound('select')};
