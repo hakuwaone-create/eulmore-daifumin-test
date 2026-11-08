@@ -116,7 +116,7 @@
 <section id="result" class="panel hide"><h2>🏆 DUTY COMPLETE!</h2><div id="resultRanking"></div><div id="scoreBoard"></div><p class="hint" id="roundSummary">ラウンド結果</p><div id="roundWait" role="status" aria-live="polite"></div><button id="nextBtn" class="hide" style="margin-bottom:12px">👑 次のラウンドへ</button><div id="rematchInfo" class="hide">⚔️ 規定ラウンド終了！ 同じ部屋で再戦できます。ホストが再戦待機室に戻すと、全員がもう一度READYを選べるよ。</div><button id="rematchBtn" class="hide">🔄 REMATCH — もう一度遊ぶ</button><button id="grandShowAgain" class="secondary" style="margin-bottom:12px">🏆 最終結果演出を見る</button><button id="resultLeave" class="secondary">退出する</button></section>
 <section id="started" class="panel hide"><h2>⚔️ DUTY COMMENCED!</h2><p>全員のREADYが揃って、ホストが開始したよ！</p><p class="hint">対戦開始を確認中です。通信が不安定な場合はページを再読み込みしてください。</p><div id="startedPlayers"></div><button id="startedLeave" class="secondary">部屋から退出</button></section>
 <footer>非公式・非営利のファン制作試作。公式サービスとは無関係です。<br>既存のオフライン版Ver.0.4には影響しません。</footer></main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
+<script defer src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
 (()=>{'use strict';const $=id=>document.getElementById(id),store=localStorage;let sb=null,user=null,roomId=null,code=null,avatar=null,timer=null,busy=false,battle=null,latestRoom=null,selected=new Set(),lastVersion=null,lastPhase=null,lastTurn=null,lastField="",lastRevolt=false,lastFall=null,clockEnd=0,clockOffset=0,clockEnabled=false;let observedRoomStatus=null,observedRound=null,previousOpeningPhase=null,openingTimer=null,openingToken=0;
 function closeOpening(){clearTimeout(openingTimer);openingToken++;$('opening').classList.add('hide');$('opening').classList.remove('short')}
 function showOpening(short=false){if($('effectMode').value==='off'||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;clearTimeout(openingTimer);const token=++openingToken;const el=$('opening');el.classList.add('hide');el.classList.toggle('short',short);void el.offsetWidth;el.classList.remove('hide');openingTimer=setTimeout(()=>{if(token===openingToken)closeOpening()},short?2200:5100)}
@@ -244,7 +244,30 @@ $('rematchBtn').onclick=()=>lock($('rematchBtn'),async()=>{closeGrandFinal();gra
 $('nextBtn').onclick=()=>lock($('nextBtn'),async()=>{await rpc('next_round',{p_room:roomId});selected.clear();await refreshBattle()});
 $('battleHand').onclick=e=>{const b=e.target.closest('[data-card]');if(!b)return;const c=+b.dataset.card;if(selected.has(c))selected.delete(c);else selected.add(c);refreshHandSelection();sound('select')};
 function refreshHandSelection(){document.querySelectorAll('[data-card]').forEach(b=>b.classList.toggle('selected',selected.has(+b.dataset.card)));$('playBtn').disabled=!battle||battle.turn!==user.id||selected.size===0;}
-$('playBtn').onclick=()=>lock($('playBtn'),async()=>{await rpc('game_action',{p_room:roomId,p_cards:[...selected],p_pass:false});selected.clear();sound('play');await refreshBattle()});
+
+// Visual-only animation: never awaits or blocks game actions. Safe fallback when GSAP is unavailable.
+function animatePlayedCards(cardIds){
+ try{
+  if(!Array.isArray(cardIds)||!cardIds.length)return;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const from=[...document.querySelectorAll('#battleHand [data-card]')].filter(el=>cardIds.includes(+el.dataset.card));
+  const target=$('battleField');if(!target||!from.length)return;
+  const to=target.getBoundingClientRect();
+  from.forEach((el,i)=>{
+   const rect=el.getBoundingClientRect(),clone=el.cloneNode(true);
+   clone.removeAttribute('data-card');clone.disabled=true;
+   Object.assign(clone.style,{position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px',margin:'0',zIndex:'9999',pointerEvents:'none',transform:'none',transition:'none'});
+   document.body.appendChild(clone);
+   const dx=to.left+to.width/2-rect.left-rect.width/2+(i-(from.length-1)/2)*22;
+   const dy=to.top+to.height/2-rect.top-rect.height/2;
+   const remove=()=>clone.remove();
+   if(window.gsap){window.gsap.to(clone,{x:dx,y:dy,rotation:(i-(from.length-1)/2)*5,scale:.92,duration:.46,delay:i*.065,ease:'power3.out',onComplete:remove});setTimeout(remove,1800);}
+   else{clone.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(.92)`,opacity:.9}],{duration:460+i*65,easing:'ease-out'}).onfinish=remove;setTimeout(remove,1800);}
+  });
+ }catch(e){console.warn('Card animation skipped',e);}
+}
+
+$('playBtn').onclick=()=>lock($('playBtn'),async()=>{const played=[...selected];await rpc('game_action',{p_room:roomId,p_cards:played,p_pass:false});animatePlayedCards(played);selected.clear();sound('play');await refreshBattle()});
 $('passBtn').onclick=()=>lock($('passBtn'),async()=>{await rpc('game_action',{p_room:roomId,p_cards:[],p_pass:true});selected.clear();sound('pass');await refreshBattle()});
 
 let pulseBusy=false,lastPulse=0;
