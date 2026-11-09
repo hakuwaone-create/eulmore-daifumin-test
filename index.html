@@ -11,7 +11,7 @@
 #eventOverlay[data-kind="fall"]{background:radial-gradient(circle,#771b20d9,#08030aef)}#eventOverlay[data-kind="fall"] .eventBox{border-color:#e55b55;box-shadow:0 0 95px #db252577;animation:fallCrash .7s ease-out}#eventOverlay[data-kind="fall"] #eventTitle{color:#ffb4aa;text-shadow:0 0 28px #f32d2d}
 #eventOverlay[data-kind="eight"] .eventBox{border-color:#ff9c50;box-shadow:0 0 90px #ff6a2166;animation:eightSlash .45s ease-out}
 #eventOverlay[data-kind="succession"] .eventBox{box-shadow:0 0 100px #ffd26b88;animation:riseIn .8s ease-out}
-@keyframes riseIn{from{transform:translateY(35px) scale(.86);opacity:0}to{transform:none;opacity:1}}@keyframes revoltPulse{0%{transform:scale(.65);filter:brightness(3)}65%{transform:scale(1.08)}100%{transform:scale(1)}}@keyframes fallCrash{0%{transform:scale(1.3) rotate(-2deg);filter:brightness(2)}35%{transform:translateX(-10px) rotate(2deg)}60%{transform:translateX(9px) rotate(-1deg)}100%{transform:none}}@keyframes eightSlash{from{transform:translateX(-85vw) skew(-12deg)}to{transform:none}}
+@keyframes riseIn{from{transform:translateY(35px) scale(.86);opacity:0}to{transform:none;opacity:1}}@keyframes revoltPulse{0%{transform:scale(.65);filter:brightness(3)}65%{transform:scale(1.08)}100%{transform:scale(1)}}@keyframes fallCrash{0%{transform:scale(1.3) rotate(-2deg);filter:brightness(2)}35%{transform:translateX(-10px) rotate(2deg)}60%{transform:translateX(9px) rotate(-1deg)}100%{transform:none}}@keyframes eightSlash{from{transform:translateY(12px) scale(.94);opacity:0}to{transform:none;opacity:1}}
 /* v0.9.1: table cards always horizontal, including four-card revolution */
 #battleField{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;min-height:82px;max-width:100%;font-size:inherit!important}
 #battleField .card{flex:0 0 auto;cursor:default;opacity:1}
@@ -108,7 +108,11 @@
 @media(max-width:600px){#battleHand{padding-right:38px}#battleHand .card{width:42px;height:65px;border-width:1px;border-radius:5px}}
 
 /* Cinematic special effects: purely decorative, never intercepts input */
-#eventOverlay{isolation:isolate}
+/* Keep event panels inside narrow and landscape viewports. */
+#eventOverlay{isolation:isolate;padding:16px;overflow:hidden}
+#eventOverlay .eventBox{min-width:0;width:min(520px,100%);max-width:100%;max-height:calc(100dvh - 32px);overflow:auto;padding:clamp(16px,4vw,30px);overflow-wrap:anywhere}
+#eventOverlay.gsap-event .eventBox{animation:none!important}
+@media(max-width:540px){#eventTitle{font-size:clamp(24px,7vw,38px)}#eventDetail{font-size:clamp(14px,3.8vw,18px)}}
 #eventOverlay .eventBox{z-index:2;will-change:transform,opacity}
 #eventOverlay[data-kind="spade3"]{background:radial-gradient(circle at center,#392274e6,#09091cf2)}
 #eventOverlay[data-kind="spade3"] .eventBox{border-color:#a6baff;box-shadow:0 0 85px #6e7fff88,inset 0 0 45px #b4bfff33}
@@ -235,16 +239,19 @@ $('effectMode').value=store.getItem('eulmore_effect')||'full';$('effectMode').on
 $('soundEnabled').onchange=()=>store.setItem('eulmore_sound',$('soundEnabled').checked?'on':'off');$('soundVolume').oninput=()=>store.setItem('eulmore_volume',$('soundVolume').value);
 let eventTimeout=null;function eventBanner(title,detail='',kind='normal'){
  const overlay=$('eventOverlay'),mode=$('effectMode').value;if(mode==='off')return;
- $('eventTitle').textContent=title;$('eventDetail').textContent=detail;overlay.dataset.kind=mode==='full'?kind:'simple';
+ const box=overlay.querySelector('.eventBox'),heading=$('eventTitle');
+ const useGsap=mode==='full'&&window.gsap&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ // CSS and GSAP must never animate the same transform at the same time.
+ if(window.gsap){gsap.killTweensOf([box,heading]);gsap.set([box,heading],{clearProps:'transform,opacity'});}
+ overlay.classList.toggle('gsap-event',!!useGsap);
+ heading.textContent=title;$('eventDetail').textContent=detail;overlay.dataset.kind=mode==='full'?kind:'simple';
  overlay.classList.remove('visible');void overlay.offsetWidth;overlay.classList.add('visible');clearTimeout(eventTimeout);
  // Visual-only GSAP emphasis. No awaits, timers controlling gameplay, or input capture.
- if(mode==='full'&&window.gsap&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+ if(useGsap){
   try{
-   const box=overlay.querySelector('.eventBox'),heading=$('eventTitle');
-   gsap.killTweensOf([box,heading]);
-   gsap.fromTo(box,{scale:kind==='revolt'?.68:.82,opacity:.3,rotation:kind==='eight'?-5:0},{scale:1,opacity:1,rotation:0,duration:kind==='revolt'?.78:.52,ease:'back.out(1.35)',overwrite:true});
+   gsap.fromTo(box,{x:0,y:0,skewX:0,skewY:0,scale:kind==='revolt'?.68:.82,opacity:.3,rotation:kind==='eight'?-5:0},{x:0,y:0,skewX:0,skewY:0,scale:1,opacity:1,rotation:0,duration:kind==='revolt'?.78:.52,ease:'back.out(1.35)',overwrite:true});
    gsap.fromTo(heading,{y:22,opacity:0},{y:0,opacity:1,duration:.55,delay:.12,ease:'power3.out',overwrite:true});
-  }catch(e){console.warn('Decorative effect skipped',e);}
+  }catch(e){overlay.classList.remove('gsap-event');gsap.set([box,heading],{clearProps:'transform,opacity'});console.warn('Decorative effect skipped',e);}
  }
  eventTimeout=setTimeout(()=>overlay.classList.remove('visible'),mode==='full'?(kind==='fall'?3100:kind==='revolt'?2700:kind==='spade3'||kind==='eight'?2600:1900):950);
 }
